@@ -1,0 +1,138 @@
+version: '3'
+
+services:
+
+    ### Workspace Utilities ##################################
+    workspace:
+        # image: registry.cn-hangzhou.aliyuncs.com/mn/laravel-workspace:dev-8.0.0
+        build:
+          context: ./docker/workspace
+          args:
+            - CHANGE_SOURCE=true
+            - LARADOCK_PHP_VERSION=8.0
+            - INSTALL_PHPREDIS=true
+            - INSTALL_XDEBUG=false
+            - COMPOSER_GLOBAL_INSTALL=true
+            - COMPOSER_AUTH=true
+            - COMPOSER_REPO_PACKAGIST=https://mirrors.aliyun.com/composer
+            - INSTALL_SOAP=true
+            - TZ=Asia/Shanghai
+        volumes:
+            - ./:/var/www
+        tty: true
+        logging:
+            options:
+                max-file: "5"
+                max-size: "10m"
+
+    ### PHP-FPM ##############################################
+    php-fpm:
+        # image: registry.cn-hangzhou.aliyuncs.com/mn/laravel-php_fpm:dev-8.0.0
+        build:
+          context: ./docker/php-fpm
+          args:
+            - CHANGE_SOURCE=true
+            - INSTALL_XDEBUG=true
+            - LARADOCK_PHP_VERSION=8.0
+            - INSTALL_PHPREDIS=true
+        volumes:
+            - ./docker/php-fpm/php8.0.ini:/usr/local/etc/php/php.ini
+            - ./:/var/www:cached
+            - /tmp
+        expose:
+            - 9000
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        logging:
+            options:
+                max-file: "5"
+                max-size: "10m"
+
+    ### PHP Worker ############################################
+    php-worker:
+        # image: registry.cn-hangzhou.aliyuncs.com/mn/laravel-php_worker:dev-8.0.0
+        build:
+          context: ./docker/php-worker
+          args:
+            - CHANGE_SOURCE=true
+            - LARADOCK_PHP_VERSION=8.0
+            - INSTALL_SOAP=true
+        volumes:
+            - ./:/var/www:cached
+            - ./docker/php-worker/supervisord.d:/etc/supervisord.d
+        depends_on:
+            - php-fpm
+        links:
+            - php-fpm
+        logging:
+            options:
+                max-file: "5"
+                max-size: "10m"
+
+    ### NGINX Server #########################################
+    nginx:
+        build:
+            context: ./docker/nginx
+            args:
+                - PHP_UPSTREAM_CONTAINER=php-fpm
+                - PHP_UPSTREAM_PORT=9000
+        volumes:
+            - ./:/var/www:cached
+            - ./docker/docker-runtime/nginx/log:/var/log/nginx
+            - ./docker/nginx/local/sites:/etc/nginx/sites-available
+        ports:
+            - "8000:80"
+        expose:
+            - "8001"
+        depends_on:
+            - php-fpm
+        links:
+            - php-fpm
+
+    ### MySQL ################################################
+    mysql:
+        container_name: mysql
+        #image: 2323811462/staging:mhd_glenmorangie_china_academy_mp_backend_mysql_0.0.1
+        platform: linux/x86_64
+        build:
+            context: ./docker/mysql
+            args:
+                - MYSQL_VERSION=5.7
+        environment:
+            - MYSQL_USERNAME=root
+            - MYSQL_ROOT_PASSWORD=123456
+            - TZ=Asia/Shanghai
+        volumes:
+            - ./docker/docker-runtime/mysql:/var/lib/mysql
+            - ./docker/mysql/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+        ports:
+            - "3304:3306"
+        logging:
+            options:
+                max-file: "5"
+                max-size: "10m"
+
+
+    ### Webgrind ##########################################
+    webgrind:
+        image: jokkedk/webgrind:latest
+        volumes_from:
+            - php-fpm
+        volumes:
+            - /var/www/html
+        ports:
+            - "8002:80"
+        links:
+            - php-fpm
+    ### Redis ################################################
+    redis:
+        container_name: redis
+        image: redis:latest
+        volumes:
+            - ./docker/docker-runtime/redis:/data
+        ports:
+            - "6384:6379"
+        logging:
+            options:
+                max-file: "5"
+                max-size: "10m"

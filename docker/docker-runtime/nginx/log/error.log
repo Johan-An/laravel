@@ -1,0 +1,2 @@
+2022/02/07 08:08:31 [emerg] 13#13: host not found in upstream "varnish" in /etc/nginx/sites-available/default.conf:18
+2022/12/29 06:58:52 [emerg] 9#9: host not found in upstream "varnish" in /etc/nginx/sites-available/default.conf:19

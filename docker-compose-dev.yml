@@ -1,0 +1,104 @@
+version: '3'
+
+services:
+
+    ### Application(PHP-FPM + WORKER) ##############################################
+    php-fpm:
+        container_name: php-fpm
+        image: registry.cn-hangzhou.aliyuncs.com/mn/laravel-app:dev-8.0.0
+        #    image: registry.cn-hangzhou.aliyuncs.com/mn/mhd_le_club_crm_middleware:0.0.1
+        #    build:
+        #      context: ./docker/php-fpm
+        #      args:
+        #        - CHANGE_SOURCE=true
+        #        - LARADOCK_PHP_VERSION=8.0
+        #        # - INSTALL_BCMATH=true
+        #        - INSTALL_PHPREDIS=true
+        #        - INSTALL_MYSQLI=true
+        #        - INSTALL_OPCACHE=true
+        volumes:
+            - ./docker/php-fpm/php8.0.ini:/usr/local/etc/php/php.ini
+            - ./:/var/www
+        ports:
+            - "8004:80"
+        logging:
+            options:
+                max-file: "5"
+                max-size: "10m"
+
+    ### PHP Worker ############################################
+    php-worker:
+        container_name: php-worker
+        image: registry.cn-hangzhou.aliyuncs.com/mn/laravel-php_worker:dev-8.0.0
+        #    build:
+        #      context: ./docker/php-worker
+        #      args:
+        #        - PHP_VERSION=8.0
+        #        - LARADOCK_PHP_VERSION=8.0
+        #        - INSTALL_BCMATH=true
+        #        - INSTALL_MYSQL_CLIENT=true
+        #        - INSTALL_REDIS=true
+        volumes:
+            - ./:/var/www:cached
+            - ./docker/php-worker/supervisord.d:/etc/supervisord.d
+        depends_on:
+            - php-fpm
+        logging:
+            options:
+                max-file: "5"
+                max-size: "10m"
+
+    ### NGINX Server #########################################
+    #  nginx:
+    #    build:
+    #      context: ./docker/nginx
+    #      args:
+    #        - PHP_UPSTREAM_CONTAINER=php-fpm
+    #        - PHP_UPSTREAM_PORT=9000
+    #    volumes:
+    #      - ./:/var/www:cached
+    #      - ./docker/docker-runtime/nginx/log:/var/log/nginx
+    #      - ./docker/nginx/local/sites:/etc/nginx/sites-available
+    #    ports:
+    #      - "8002:80"
+    #    depends_on:
+    #      - php-fpm
+    #    links:
+    #      - php-fpm
+
+    ### MySQL ################################################
+    mysql:
+        container_name: mysql
+        #image: 2323811462/staging:mhd_glenmorangie_china_academy_mp_backend_mysql_0.0.1
+        platform: linux/x86_64
+        build:
+            context: ./docker/mysql
+            args:
+                - MYSQL_VERSION=5.7
+        environment:
+            - MYSQL_USERNAME=root
+            - MYSQL_ROOT_PASSWORD=123456
+            - TZ=Asia/Shanghai
+        volumes:
+            - ./docker/docker-runtime/mysql:/var/lib/mysql
+            - ./docker/mysql/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+        ports:
+            - "3304:3306"
+        logging:
+            options:
+                max-file: "5"
+                max-size: "10m"
+
+    ### Redis ################################################
+    redis:
+        container_name: redis
+        image: redis:latest
+        volumes:
+            - ./docker/docker-runtime/redis:/data
+        ports:
+            - "6384:6379"
+        logging:
+            options:
+                max-file: "5"
+                max-size: "10m"
+

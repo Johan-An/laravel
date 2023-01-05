@@ -1,0 +1,41 @@
+{
+    "name": "mobilenowgroup/laravel-initialize-kit",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MobileNowGroup\\LaravelInitializeKit\\": "src"
+        }
+    },
+    "authors": [
+        {
+            "name": "johan",
+            "email": "johan.an@mobilenowgroup.com"
+        }
+    ],
+    "require": {
+        "mobilenowgroup/laravel-send-dingding": "dev-master"
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url":  "git@github.com:MobileNowGroup/Laravel-Send-Ding-Ding.git"
+        }
+    ],
+    "require-dev": {
+        "itsgoingd/clockwork": "^5.1",
+        "fakerphp/faker": "^1.19",
+        "knuckleswtf/scribe": "^3.37",
+        "phpunit/phpunit": "^9.5",
+        "protoqol/prequel": "^1.23",
+        "mobilenowgroup/laravel-phpcs": "dev-master"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "MobileNowGroup\\LaravelInitializeKit\\KitServiceProvider",
+                "MobileNowGroup\\LaravelInitializeKit\\SqlListenerServiceProvider"
+            ]
+        }
+    }
+}
